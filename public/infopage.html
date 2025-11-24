@@ -12,7 +12,7 @@
 <body>
   <!-- Top Bar -->
   <header class="top-bar">
-    <a href="SearchEngine.html" class="logo-container">
+    <a href="/" class="logo-container">
       <img src="./image.png" alt="Betaliz" class="logo" />
       <span class="brand-name">Betaliz</span>
     </a>
@@ -121,7 +121,7 @@
   </footer>
 
   <script>
-    // AI Knowledge Base - Expanded for better responses
+    // AI Knowledge Base
     const AI_KNOWLEDGE = {
       topics: {
         'artificial intelligence': {
@@ -143,11 +143,6 @@
           summary: 'Data Science involves extracting insights from data using scientific methods, processes, and systems to inform decision-making.',
           related: ['Statistics', 'Data Analysis', 'Machine Learning', 'Big Data', 'Data Visualization'],
           explanation: 'Data Science is like being a detective who finds hidden patterns and stories in large amounts of information.'
-        },
-        'programming': {
-          summary: 'Programming is the process of creating instructions for computers to execute, using programming languages to solve problems and build software.',
-          related: ['Algorithms', 'Software Development', 'Debugging', 'Frameworks', 'Version Control'],
-          explanation: 'Programming is like writing recipes for computers - you give them step-by-step instructions to complete tasks.'
         }
       },
       responses: {
@@ -155,31 +150,10 @@
           "Hello! I'm here to help you explore your search results. What would you like to know?",
           "Hi there! I can help you understand more about your search. What questions do you have?",
           "Welcome! I'm ready to assist you with your search. What would you like me to explain?"
-        ],
-        summaries: [
-          "Based on your search for '{query}', I can see information covering {topics}. The main points focus on {focus}.",
-          "Your search about '{query}' reveals content related to {topics}. Key aspects include {focus}.",
-          "From what I can gather about '{query}', the information covers {topics} with emphasis on {focus}."
-        ],
-        explanations: [
-          "Let me explain '{query}' in simple terms: {explanation}",
-          "In everyday language, '{query}' means: {explanation}",
-          "Here's a simple way to understand '{query}': {explanation}"
-        ],
-        related: [
-          "For '{query}', you might also want to explore: {topics}",
-          "Related topics to '{query}' include: {topics}",
-          "You may find these areas interesting too: {topics}"
-        ],
-        general: [
-          "Regarding your search for '{query}', I can help you understand various aspects of this topic.",
-          "Your search about '{query}' covers interesting ground. What specific area interests you?",
-          "I see you're looking into '{query}'. There are several fascinating angles to explore here."
         ]
       }
     };
 
-    // AI Context Storage
     let searchContext = {
       query: '',
       results: [],
@@ -223,8 +197,6 @@
       const aiChat = document.getElementById('aiChat');
       const suggestionButtons = document.querySelectorAll('.suggestion-btn');
 
-      let conversationHistory = [];
-
       aiToggle.addEventListener('click', () => {
         aiPanel.classList.add('active');
         if (aiChat.children.length === 0) {
@@ -245,7 +217,6 @@
         if (!message) return;
 
         addChatMessage(message, 'user');
-        conversationHistory.push({ role: 'user', content: message });
         aiInput.value = '';
 
         const thinkingIndicator = addThinkingIndicator();
@@ -254,7 +225,6 @@
           removeThinkingIndicator(thinkingIndicator);
           const response = generateAIResponse(message);
           addChatMessage(response, 'ai');
-          conversationHistory.push({ role: 'assistant', content: response });
         }, 1000 + Math.random() * 1000);
       }
 
@@ -281,172 +251,28 @@
         const { query, results } = searchContext;
         const lowerMessage = userMessage.toLowerCase();
         
-        // Check if we have specific knowledge about the query
         const knownTopic = Object.keys(AI_KNOWLEDGE.topics).find(topic => 
           query.toLowerCase().includes(topic)
         );
 
-        // Analyze search results for context
-        const resultAnalysis = analyzeResults(results);
-        
         if (lowerMessage.includes('summarize') || lowerMessage.includes('summary')) {
-          return generateSummary(query, knownTopic, resultAnalysis);
+          if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
+            return `Based on your search for "${query}": ${AI_KNOWLEDGE.topics[knownTopic].summary}`;
+          }
+          return `Based on your search for "${query}", I found ${results.length} results covering various aspects of this topic. The information appears comprehensive with multiple perspectives.`;
         } else if (lowerMessage.includes('related') || lowerMessage.includes('similar')) {
-          return generateRelatedTopics(query, knownTopic);
-        } else if (lowerMessage.includes('explain') || lowerMessage.includes('simple') || lowerMessage.includes('what is')) {
-          return generateExplanation(query, knownTopic);
-        } else if (lowerMessage.includes('how') && lowerMessage.includes('work')) {
-          return generateHowItWorks(query, knownTopic);
-        } else if (lowerMessage.includes('benefit') || lowerMessage.includes('advantage')) {
-          return generateBenefits(query, knownTopic);
+          if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
+            return `For "${query}", you might also explore: ${AI_KNOWLEDGE.topics[knownTopic].related.join(', ')}`;
+          }
+          return `For "${query}", related topics might include: advanced concepts, practical applications, latest trends, and beginner guides.`;
+        } else if (lowerMessage.includes('explain') || lowerMessage.includes('simple')) {
+          if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
+            return `In simple terms: ${AI_KNOWLEDGE.topics[knownTopic].explanation}`;
+          }
+          return `"${query}" involves fundamental concepts and practical applications that can be understood through the available learning resources.`;
         } else {
-          return generateGeneralResponse(query, userMessage, knownTopic, resultAnalysis);
+          return `Regarding your search for "${query}", I can help you explore various aspects of this topic. The search results provide comprehensive coverage.`;
         }
-      }
-
-      function analyzeResults(results) {
-        if (results.length === 0) return { topics: [], type: 'general' };
-        
-        const allText = results.map(r => r.title + ' ' + r.snippet).join(' ').toLowerCase();
-        const categories = [...new Set(results.map(r => r.category))];
-        
-        // Detect content type
-        let type = 'general';
-        if (allText.includes('tutorial') || allText.includes('guide') || allText.includes('learn')) type = 'tutorial';
-        if (allText.includes('news') || allText.includes('update') || allText.includes('recent')) type = 'news';
-        if (allText.includes('api') || allText.includes('code') || allText.includes('programming')) type = 'technical';
-        
-        // Extract key topics
-        const words = allText.split(/\s+/).filter(word => word.length > 4);
-        const wordFreq = {};
-        words.forEach(word => {
-          if (!['about', 'their', 'which', 'would', 'could'].includes(word)) {
-            wordFreq[word] = (wordFreq[word] || 0) + 1;
-          }
-        });
-        
-        const topics = Object.entries(wordFreq)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
-        
-        return { topics, type, categories };
-      }
-
-      function generateSummary(query, knownTopic, analysis) {
-        if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
-          const topic = AI_KNOWLEDGE.topics[knownTopic];
-          return `Based on your search for "${query}": ${topic.summary} The search results provide comprehensive coverage of this topic.`;
-        }
-        
-        const template = AI_KNOWLEDGE.responses.summaries[
-          Math.floor(Math.random() * AI_KNOWLEDGE.responses.summaries.length)
-        ];
-        
-        const topics = analysis.topics.length > 0 ? 
-          analysis.topics.join(', ') : 'various aspects';
-        const focus = analysis.type === 'technical' ? 'technical implementation and practical applications' :
-                     analysis.type === 'tutorial' ? 'learning resources and step-by-step guides' :
-                     'fundamental concepts and current developments';
-        
-        return template
-          .replace('{query}', query)
-          .replace('{topics}', topics)
-          .replace('{focus}', focus);
-      }
-
-      function generateRelatedTopics(query, knownTopic) {
-        if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
-          const topics = AI_KNOWLEDGE.topics[knownTopic].related;
-          const template = AI_KNOWLEDGE.responses.related[
-            Math.floor(Math.random() * AI_KNOWLEDGE.responses.related.length)
-          ];
-          return template
-            .replace('{query}', query)
-            .replace('{topics}', topics.join(', '));
-        }
-        
-        // Generate related topics based on query
-        const relatedMap = {
-          'ai': ['Machine Learning', 'Neural Networks', 'Computer Vision', 'Natural Language Processing'],
-          'web': ['Frontend Development', 'Backend Development', 'Web Design', 'Web Security'],
-          'data': ['Statistics', 'Analytics', 'Visualization', 'Big Data'],
-          'programming': ['Algorithms', 'Software Architecture', 'Debugging', 'Frameworks']
-        };
-        
-        let related = [];
-        for (const [key, topics] of Object.entries(relatedMap)) {
-          if (query.toLowerCase().includes(key)) {
-            related = topics;
-            break;
-          }
-        }
-        
-        if (related.length === 0) {
-          related = ['Advanced Concepts', 'Practical Applications', 'Latest Trends', 'Beginner Guides'];
-        }
-        
-        const template = AI_KNOWLEDGE.responses.related[
-          Math.floor(Math.random() * AI_KNOWLEDGE.responses.related.length)
-        ];
-        return template
-          .replace('{query}', query)
-          .replace('{topics}', related.join(', '));
-      }
-
-      function generateExplanation(query, knownTopic) {
-        if (knownTopic && AI_KNOWLEDGE.topics[knownTopic]) {
-          const explanation = AI_KNOWLEDGE.topics[knownTopic].explanation;
-          const template = AI_KNOWLEDGE.responses.explanations[
-            Math.floor(Math.random() * AI_KNOWLEDGE.responses.explanations.length)
-          ];
-          return template
-            .replace('{query}', query)
-            .replace('{explanation}', explanation);
-        }
-        
-        const explanations = [
-          `"${query}" involves working with complex systems and processes to achieve specific outcomes. It combines theoretical knowledge with practical applications.`,
-          `In simple terms, "${query}" deals with creating solutions and understanding systems that help solve real-world problems through technology and innovation.`,
-          `"${query}" can be understood as a field that focuses on developing methods and tools to improve how we work with information and technology.`
-        ];
-        
-        return explanations[Math.floor(Math.random() * explanations.length)];
-      }
-
-      function generateHowItWorks(query, knownTopic) {
-        const explanations = {
-          'artificial intelligence': 'AI works by using algorithms to process data, identify patterns, and make decisions. It learns from examples and improves over time.',
-          'web development': 'Web development works by combining code (HTML, CSS, JavaScript) with servers and databases to create interactive websites that users can access through browsers.',
-          'machine learning': 'Machine learning works by training algorithms on data to find patterns. The more data it processes, the better it becomes at making predictions.',
-          'data science': 'Data science works by collecting data, cleaning it, analyzing patterns, and using statistical methods to extract insights and make predictions.'
-        };
-        
-        if (knownTopic && explanations[knownTopic]) {
-          return explanations[knownTopic];
-        }
-        
-        return `"${query}" typically works through a combination of processes, systems, and technologies that work together to achieve specific goals. The exact mechanism depends on the specific application and context.`;
-      }
-
-      function generateBenefits(query, knownTopic) {
-        const benefits = [
-          `The main benefits of "${query}" include improved efficiency, better decision-making, and new opportunities for innovation and growth.`,
-          `"${query}" offers advantages such as increased productivity, enhanced capabilities, and the ability to solve complex problems more effectively.`,
-          `Key benefits of exploring "${query}" include gaining valuable skills, understanding modern technologies, and being able to create innovative solutions.`
-        ];
-        
-        return benefits[Math.floor(Math.random() * benefits.length)];
-      }
-
-      function generateGeneralResponse(query, userMessage, knownTopic, analysis) {
-        const templates = [
-          `Regarding "${query}", the search results cover ${analysis.topics.slice(0, 3).join(', ') || 'various aspects'}. I can help you explore specific areas in more detail.`,
-          `Your question about "${query}" relates to the ${analysis.type} content found in the search results. What specific information are you looking for?`,
-          `Based on your search for "${query}", I notice coverage of ${analysis.categories.join(', ')}. How can I assist you further with this topic?`
-        ];
-        
-        return templates[Math.floor(Math.random() * templates.length)];
       }
 
       sendButton.addEventListener('click', sendAIMessage);
@@ -483,7 +309,7 @@
     function initSearch() {
       const query = localStorage.getItem("searchQuery");
       if (!query) {
-        window.location.href = "SearchEngine.html";
+        window.location.href = "/";
         return;
       }
 

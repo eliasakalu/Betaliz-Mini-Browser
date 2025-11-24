@@ -153,7 +153,6 @@ h1 {
     margin-top: 0;
     font-weight: 600;
     letter-spacing: -1px;
-    /* background: linear-gradient(135deg, #4285F4, #34A853, #FBBC05, #EA4335); */
     background: linear-gradient(135deg, #4285F4, #4285f4, #fffbee, #050404);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
